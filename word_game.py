@@ -9,6 +9,9 @@ min_length = 4
 max_length = 13
 # Number of guesses per level
 guesses_per_level = 6
+# Text that goes before correct/incorrect letters on the game board
+correct_letter_info = 'IN WORD: '
+incorrect_letter_info = 'NOT IN WORD: '
 
 # Introduction sequence
 def introduce_game():
@@ -22,43 +25,90 @@ A correct letter in the incorrect position will be displayed in upper case to th
 If you wish to quit at any point, type 'quit game'.''')
     print('=' * 50 + '\n')
 
-# Returns `True` if `word` is a legal word
-def is_legal(word):
-    return word.isalpha() and word.islower() and len(word) >= min_length and len(word) <= max_length
+# Sorts a set of letters alphabetically and turns it into a string
+def make_displayable(set_of_letters):
+    list_of_letters = list(set_of_letters)
+    list_of_letters.sort()
+    return ''.join(list_of_letters)
 
-# Picks out legal words in the word list and sorts them by length, ignoring duplicates
-def get_words_by_size(word_list):
-    words_by_size = defaultdict(set)
-    for word in word_list:
-        word = word.rstrip('\n')
-        if is_legal(word):
-            words_by_size[len(word)].add(word)
-    return words_by_size
-
-# Picks a random word of a specified length
-def pick_random_word(words_by_size, length):
-    return random.choice(list(words_by_size[length]))
+# Creates a display for a set of letters
+def make_letter_display(letter_info, letters):
+    return letter_info + make_displayable(letters)
 
 # Main class for game logic
 class GameProcessor:
     new_game = ''
     remaining_guesses = guesses_per_level
 
-    def __init__(self, length):
-        self.length = length
-        self.display = '%s ' * length
-        self.level = length - min_length + 1
-        self.revealed_letters = list(('_') * length)
-        self.correct_letters = []
-        self.incorrect_letters = []
+    def __init__(self, word_length):
+        self.word_length = word_length
+        self.level = word_length - min_length + 1
+        self.revealed_letters = list(('_') * word_length)
+        self.correct_letters = set()
+        self.incorrect_letters = set()
+        # Display elements
+        self.guess_display = '%s ' * word_length + '  '
+        self.empty_guess_display = self.guess_display % ((' ',) * word_length)
+        self.correct_letter_display = make_letter_display(correct_letter_info, self.correct_letters)
+        self.incorrect_letter_display = make_letter_display(incorrect_letter_info, self.incorrect_letters)
+        self.game_board_display = self.guess_display + self.correct_letter_display + '\n' + self.empty_guess_display + self.incorrect_letter_display
 
-    # Displays level
+    def update_revealed_letters(self, position, letter):
+        self.revealed_letters[position] = letter
+    
+    def update_correct_letters(self, letter):
+        self.correct_letters.add(letter.capitalize())
+
+    def update_incorrect_letters(self, letter):
+        self.incorrect_letters.add(letter.capitalize())
+        
+    def update_game_display(self):    
+        self.correct_letter_display = make_letter_display(correct_letter_info, self.correct_letters)
+        self.incorrect_letter_display = make_letter_display(incorrect_letter_info, self.incorrect_letters)
+        self.game_board_display = self.guess_display + self.correct_letter_display + '\n' + self.empty_guess_display + self.incorrect_letter_display
+
+    # Updates the game board following player's guess
+    def update_game_board(self, word, guess):
+        word_letters = list(word)
+        guessed_letters = list(guess)
+        for i, letter in enumerate(guessed_letters):
+            # If player guesses a correct letter in the correct position, reveals that letter and displays it on the right
+            if letter == word_letters[i]:
+                self.update_revealed_letters(i, letter)
+                self.update_correct_letters(letter)
+            # If player guesses a correct letter in the incorrect position, displays it on the right
+            elif letter in word_letters:
+                self.update_correct_letters(letter)
+            # If player guesses an incorrect letter, displays it on the right
+            else:
+                self.update_incorrect_letters(letter)
+        self.update_game_display()
+    
+    # Returns True if guess is illegal
+    def is_illegal(self, guess):
+        if len(guess) != self.word_length or not guess.isalpha():
+            return True
+        else:
+            return False
+    
+    # Prompts player if guess is illegal
+    def warn_player(self, guess):
+        if len(guess) != self.word_length:
+            print(f'Guess a word of length {self.word_length}.')
+        elif not guess.isalpha():
+            print('Guess must contain only letters.')
+
+    # Player uses up a guess if their guess was legal
+    def update_remaining_guesses(self, guess):
+        if not self.is_illegal(guess):
+            self.remaining_guesses -= 1
+
     def display_level(self):
         print(f'LEVEL {self.level}')
 
     # Displays letters the player has revealed so far
     def display_game_board(self):
-        print(self.display % tuple(self.revealed_letters))
+        print(self.game_board_display % tuple(self.revealed_letters))
 
     def display_remaining_guesses(self):
         print(f'{self.remaining_guesses} guesses remaining')
@@ -66,37 +116,6 @@ class GameProcessor:
     def display_game_state(self):
         self.display_game_board()
         self.display_remaining_guesses()
-
-    # Tracks correctly guessed letters
-    def update_revealed_letters(self, word, guess):
-        word_letters = list(word)
-        guessed_letters = list(guess)
-        for i, letter in enumerate(guessed_letters):
-            # If player guesses a correct letter in the correct position, reveals that letter in lower case
-            if letter == word_letters[i]:
-                self.revealed_letters[i] = letter
-            # If player guesses a correct letter in the incorrect position, displays as upper case
-            elif letter in word_letters:
-                self.revealed_letters[i] = letter.capitalize()
-    
-    # Returns True if guess is illegal
-    def is_illegal(self, guess):
-        if len(guess) != self.length or not guess.isalpha():
-            return True
-        else:
-            return False
-    
-    # Prompts player if guess is illegal
-    def warn_player(self, guess):
-        if len(guess) != self.length:
-            print(f'Guess a word of length {self.length}.')
-        elif not guess.isalpha():
-            print('Guess must contain only letters.')
-
-    # Player uses up a guess if their guess was a legal word
-    def update_remaining_guesses(self, guess):
-        if not self.is_illegal(guess):
-            self.remaining_guesses -= 1
 
     # Checks if player wishes to continue after completing all levels
     def check_to_continue(self):
@@ -122,6 +141,23 @@ class GameProcessor:
             else:
                 continue
 
+# Returns `True` if `word` is a legal word
+def is_legal(word):
+    return word.isalpha() and word.islower() and len(word) >= min_length and len(word) <= max_length
+
+# Picks out legal words in the word list and sorts them by length, ignoring duplicates
+def get_words_by_size(word_list):
+    words_by_size = defaultdict(set)
+    for word in word_list:
+        word = word.rstrip('\n')
+        if is_legal(word):
+            words_by_size[len(word)].add(word)
+    return words_by_size
+
+# Picks a random word of a specified length
+def pick_random_word(words_by_size, length):
+    return random.choice(list(words_by_size[length]))
+
 # Get word list from file and sort by length
 word_list_file = open('word_list.txt')
 word_list = word_list_file.readlines()
@@ -133,9 +169,9 @@ while True:
     introduce_game()
 
     # Ten levels with word lengths starting at 4 and increasing by 1 each level
-    for length in range(min_length, max_length + 1):
-        game = GameProcessor(length)
-        word = pick_random_word(words_by_size, length)
+    for word_length in range(min_length, max_length + 1):
+        game = GameProcessor(word_length)
+        word = pick_random_word(words_by_size, word_length)
         correct_guess = False
         game.display_level()
 
@@ -150,11 +186,11 @@ while True:
             elif game.is_illegal(guess):
                 game.warn_player(guess)
             else:
-                game.update_revealed_letters(word, guess)
+                game.update_game_board(word, guess)
             game.update_remaining_guesses(guess)
-
+            
         # If player completes final level, asks if player wants to continue
-        if correct_guess == True and length == max_length:
+        if correct_guess == True and word_length == max_length:
             game.check_to_continue()
         elif correct_guess == True:
             print('Congratulations! You guessed correctly. Proceed to the next level.')
