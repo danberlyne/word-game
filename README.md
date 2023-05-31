@@ -1,7 +1,7 @@
 # Game instructions
 Guess the word correctly to proceed to the next level. You have six chances to guess the word. Words start out at length four and increase by one with each level. There are ten levels in total.
 
-If your guess contains a correct letter in the correct position, this letter will be revealed in lower case. If your guess contains a correct letter in the incorrect position, this letter with be revealed in upper case.
+If your guess contains a correct letter in the correct position, this letter will be revealed in lower case. All correct and incorrect letters in your guesses will be kept track of in a panel on the right.
 
 This game uses American English by default.
 
