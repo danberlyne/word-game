@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # word_game.py - A word-guessing game
 
-import sys, random
+import sys, random, time
 from collections import defaultdict
 
 # Word lengths for the first and last levels
@@ -91,7 +91,7 @@ class GameProcessor:
 
     # Returns True if guess is valid word
     def is_valid(self, guess):
-        if guess in dictionary_by_size[len(guess)]:
+        if len(guess) == self.word_length and guess in dictionary_by_size[len(guess)]:
             return True
         else:
             return False
@@ -99,9 +99,11 @@ class GameProcessor:
     # Prompts player if guess is invalid
     def warn_player(self, guess):
         if len(guess) != self.word_length:
-            print(f'Guess a word of length {self.word_length}.')
+            print(f'Guess a word of length {self.word_length}.\n')
+            time.sleep(1)
         elif guess not in dictionary_by_size[len(guess)]:
-            print('Word not found in dictionary.')
+            print('Word not found in dictionary.\n')
+            time.sleep(1)
 
     def display_level(self):
         print(f'LEVEL {self.level}')
