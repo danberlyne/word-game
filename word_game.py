@@ -146,9 +146,13 @@ class GameProcessor:
 def get_words_by_size(word_list):
     words_by_size = defaultdict(set)
     for word in word_list:
-        word = word.rstrip('\n')
+        word = word.rstrip('\n ')
         if is_legal(word):
             words_by_size[len(word)].add(word)
+    for length in range(min_length, max_length + 1):
+        if len(words_by_size[length]) == 0:
+            # `word_list[-1]` is the file name
+            raise Exception(f'No legal words of length {length} in {word_list[-1]}')
     return words_by_size
 
 # Returns `True` if `word` is a legal word
@@ -164,6 +168,8 @@ def convert_to_list(path):
     file = open(path)
     file_as_list = file.readlines()
     file.close()
+    # Adds file name to end of list so it can be accessed in exception handling
+    file_as_list.append(path)
     return file_as_list
 
 # Get dictionary and word list from files and sort legal words by length
